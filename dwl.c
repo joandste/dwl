@@ -315,7 +315,7 @@ static void closemon(Monitor *m);
 static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitnotify(struct wl_listener *listener, void *data);
 static void commitpopup(struct wl_listener *listener, void *data);
-static int countclients(Monitor *m);
+static int countclients(Monitor *m, uint32_t tagmask);
 static void createdecoration(struct wl_listener *listener, void *data);
 static void createidleinhibitor(struct wl_listener *listener, void *data);
 static void createkeyboard(struct wlr_keyboard *keyboard);
@@ -1192,12 +1192,13 @@ commitpopup(struct wl_listener *listener, void *data)
 }
 
 int
-countclients(Monitor *m)
+countclients(Monitor *m, uint32_t tagmask)
 {
 	unsigned int n = 0;
 	Client *c;
+
 	wl_list_for_each(c, &clients, link)
-		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
+		if (c->mon == m && (c->tags & tagmask) && !c->isfloating && !c->isfullscreen)
 			n++;
 	return n;
 }
@@ -2426,10 +2427,19 @@ moveresize(const Arg *arg)
 
 int
 needsborder(Client *c) {
+	Monitor *m = c->mon;
+	uint32_t tagmask;
+
 	if (!smartborders)
 		return 1; // smart borders disabled
-	return ((countclients(c->mon) > 1
-			&& c->mon->lt[c->mon->sellt]->arrange != monocle)
+
+	/* A hidden client isn't displayed through the monitor tag set, so count the
+	 * clients sharing its own tags instead: its border must not depend on
+	 * whatever happens to be on screen at the moment. */
+	tagmask = VISIBLEON(c, m) ? m->tagset[m->seltags] : c->tags;
+
+	return ((countclients(m, tagmask) > 1
+			&& m->lt[m->sellt]->arrange != monocle)
 		|| c->isfloating)
 		&& !c->isfullscreen;
 }
