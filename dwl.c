@@ -93,7 +93,7 @@
 #define TEXTW(mon, text)        (drwl_font_getwidth(mon->drw, text) + mon->lrpad)
 
 /* enums */
-enum { SchemeNorm, SchemeSel, SchemeUrg }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeSSel, SchemeUrg }; /* color schemes */
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 }; /* client types */
 enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrTop, LyrFS, LyrUnmanaged, LyrOverlay,
@@ -1704,7 +1704,7 @@ drawbar(Monitor *m)
 		return;
 
 	/* draw status first so it can be overdrawn by tags later */
-	if (m == selmon) { /* status is only drawn on selected monitor */
+	if (true) { /* status is drawn on all monitors */
 		drwl_setscheme(m->drw, colors[SchemeNorm]);
 		tw = TEXTW(m, stext) - m->lrpad + 2; /* 2px right padding */
 		drwl_text(m->drw, m->b.width - tw, 0, tw, m->b.height, 0, stext, 0);
@@ -1735,7 +1735,7 @@ drawbar(Monitor *m)
 
 	if ((w = m->b.width - tw - x) > m->b.height) {
 		if (c) {
-			drwl_setscheme(m->drw, colors[m == selmon ? SchemeSel : SchemeNorm]);
+			drwl_setscheme(m->drw, colors[m == selmon ? SchemeSSel : SchemeNorm]);
 			drwl_text(m->drw, x, 0, w, m->b.height, m->lrpad / 2, client_get_title(c), 0);
 			if (c && c->isfloating)
 				drwl_rect(m->drw, x + boxs, boxs, boxw, boxw, 0, 0);
