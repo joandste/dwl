@@ -316,6 +316,7 @@ static void closemon(Monitor *m);
 static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitnotify(struct wl_listener *listener, void *data);
 static void commitpopup(struct wl_listener *listener, void *data);
+static int countclients(Monitor *m);
 static void createdecoration(struct wl_listener *listener, void *data);
 static void createidleinhibitor(struct wl_listener *listener, void *data);
 static void createkeyboard(struct wlr_keyboard *keyboard);
@@ -374,6 +375,7 @@ static void motionnotify(uint32_t time, struct wlr_input_device *device, double 
 		double sy, double sx_unaccel, double sy_unaccel);
 static void motionrelative(struct wl_listener *listener, void *data);
 static void moveresize(const Arg *arg);
+static int needsborder(Client *c);
 static void outputmgrapply(struct wl_listener *listener, void *data);
 static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test);
 static void outputmgrtest(struct wl_listener *listener, void *data);
@@ -1192,6 +1194,17 @@ commitpopup(struct wl_listener *listener, void *data)
 	wlr_xdg_popup_unconstrain_from_box(popup, &box);
 	wl_list_remove(&listener->link);
 	free(listener);
+}
+
+int
+countclients(Monitor *m)
+{
+	unsigned int n = 0;
+	Client *c;
+	wl_list_for_each(c, &clients, link)
+		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
+			n++;
+	return n;
 }
 
 void
@@ -2481,6 +2494,14 @@ moveresize(const Arg *arg)
 	}
 }
 
+int
+needsborder(Client *c) {
+	return ((countclients(c->mon) > 1
+			&& c->mon->lt[c->mon->sellt]->arrange != monocle)
+		|| c->isfloating)
+		&& !c->isfullscreen;
+}
+
 void
 outputmgrapply(struct wl_listener *listener, void *data)
 {
@@ -2686,6 +2707,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 
 	client_set_bounds(c, geo.width, geo.height);
 	c->geom = geo;
+	c->bw = needsborder(c) ? borderpx : 0;
 	applybounds(c, bbox);
 
 	/* Update scene-graph, including borders */
@@ -3243,26 +3265,26 @@ tile(Monitor *m)
 	}
 
 	if (n > m->nmaster)
-		mw = m->nmaster ? (int)roundf((m->w.width + m->gappiv*ie) * m->mfact) : 0;
+		mw = m->nmaster ? (int)roundf((m->w.width + m->gappih*ie) * m->mfact) : 0;
 	else
-		mw = m->w.width - 2*m->gappov*oe + m->gappiv*ie;
+		mw = m->w.width - 2*m->gappoh*oe + m->gappih*ie;
 	i = 0;
-	my = ty = m->gappoh*oe;
+	my = ty = m->gappov*oe;
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 			continue;
 		if (i < m->nmaster) {
 			r = MIN(n, m->nmaster) - i;
-			h = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
-			resize(c, (struct wlr_box){.x = m->w.x + m->gappov*oe, .y = m->w.y + my,
-				.width = mw - m->gappiv*ie, .height = h}, 0);
-			my += c->geom.height + m->gappih*ie;
+			h = (m->w.height - my - m->gappov*oe - m->gappiv*ie * (r - 1)) / r;
+			resize(c, (struct wlr_box){.x = m->w.x + m->gappoh*oe, .y = m->w.y + my,
+				.width = mw - m->gappih*ie, .height = h}, 0);
+			my += c->geom.height + m->gappiv*ie;
 		} else {
 			r = n - i;
-			h = (m->w.height - ty - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
-			resize(c, (struct wlr_box){.x = m->w.x + mw + m->gappov*oe, .y = m->w.y + ty,
-				.width = m->w.width - mw - 2*m->gappov*oe, .height = h}, 0);
-			ty += c->geom.height + m->gappih*ie;
+			h = (m->w.height - ty - m->gappov*oe - m->gappiv*ie * (r - 1)) / r;
+			resize(c, (struct wlr_box){.x = m->w.x + mw + m->gappoh*oe, .y = m->w.y + ty,
+				.width = m->w.width - mw - 2*m->gappoh*oe, .height = h}, 0);
+			ty += c->geom.height + m->gappiv*ie;
 		}
 		i++;
 	}
