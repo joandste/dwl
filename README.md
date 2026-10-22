@@ -38,6 +38,8 @@ dwl has the following dependencies:
 - wayland
 - wlroots (compiled with the libinput backend)
 - xkbcommon
+- fcft (for the bar)
+- pixman (for the bar)
 - wayland-protocols (compile-time only)
 - pkg-config (compile-time only)
 
