@@ -393,7 +393,6 @@ static int statusin(int fd, unsigned int mask, void *data);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
-static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void toggletag(const Arg *arg);
@@ -669,7 +668,7 @@ arrangelayers(Monitor *m)
 	if (!m->wlr_output->enabled)
 		return;
 
-	if (m->scene_buffer->node.enabled) {
+	if (showbar) {
 		usable_area.height -= m->b.real_height;
 		usable_area.y += topbar ? m->b.real_height : 0;
 	}
@@ -1699,7 +1698,7 @@ drawbar(Monitor *m)
 	Client *c;
 	Buffer *buf;
 
-	if (!m->scene_buffer->node.enabled)
+	if (!showbar)
 		return;
 	if (!(buf = bufmon(m)))
 		return;
@@ -3178,15 +3177,6 @@ tile(Monitor *m)
 }
 
 void
-togglebar(const Arg *arg)
-{
-	wlr_scene_node_set_enabled(&selmon->scene_buffer->node,
-		!selmon->scene_buffer->node.enabled);
-	arrangelayers(selmon);
-	drawbars();
-}
-
-void
 togglefloating(const Arg *arg)
 {
 	Client *sel = focustop(selmon);
@@ -3423,7 +3413,7 @@ updatebar(Monitor *m)
 	m->b.width = rw;
 	m->b.real_width = (int)((float)m->b.width / m->wlr_output->scale);
 
-	wlr_scene_node_set_enabled(&m->scene_buffer->node, m->wlr_output->enabled ? showbar : 0);
+	wlr_scene_node_set_enabled(&m->scene_buffer->node, m->wlr_output->enabled && showbar);
 
 	for (i = 0; i < LENGTH(m->pool); i++)
 		if (m->pool[i]) {
