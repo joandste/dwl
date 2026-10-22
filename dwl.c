@@ -2496,6 +2496,8 @@ moveresize(const Arg *arg)
 
 int
 needsborder(Client *c) {
+	if (!smartborders)
+		return 1; // smart borders disabled
 	return ((countclients(c->mon) > 1
 			&& c->mon->lt[c->mon->sellt]->arrange != monocle)
 		|| c->isfloating)
